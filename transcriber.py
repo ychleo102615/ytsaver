@@ -1,5 +1,6 @@
 import os
 import speech_recognition as sr
+import shutil
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 
@@ -10,24 +11,19 @@ def transcribe_audio(audio_file):
     text = r.recognize_google(audio, language='zh-TW')  # 使用Google語音辨識API進行轉錄
     return text
 
-def main():
-    import sys
-    # # 呼叫語音辨識函式，並傳遞影片的音訊檔案路徑
-    if len(sys.argv) < 2:
-        print("No audio file specified.")
-        return
-    audio_file_path = sys.argv[1]
-    # audio_file_path = input("audio file name:")
-
+# https://www.geeksforgeeks.org/python-speech-recognition-on-large-audio-files/
+def transcribe_audio_file(audio_file_path):
     # 參考來源
-    # https://www.geeksforgeeks.org/python-speech-recognition-on-large-audio-files/
     song = AudioSegment.from_wav(audio_file_path)
 
     # open a file where we will concatenate
     # and store the recognized text
     fh = open("recognized.txt", "w+")
-    print("open recognized.txt")
+    print("Open recognized.txt")
 
+    text = ""
+
+    print("Splitting Audio...")
     chunks = split_on_silence(song,
         # must be silent for at least 0.5 seconds
         # or 500 ms. adjust this value based on user
@@ -66,7 +62,7 @@ def main():
 
         # export audio chunk and save it in
         # the current directory.
-        print("saving chunk{0}.wav".format(i))
+        print("Saving chunk{0}.wav".format(i))
         # specify the bitrate to be 192 k
         audio_chunk.export("./chunk{0}.wav".format(i), bitrate ='192k', format ="wav")
 
@@ -94,8 +90,10 @@ def main():
             # try converting it to text
             rec = r.recognize_google(audio_listened, language='zh-TW')
             # write the output to the file.
-            print("i: " + str(rec))
-            fh.write(str(rec)+". ")
+            # print("i: " + str(rec))
+            print("Recognizing chunk " + str(i) + " ...")
+            fh.write(str(rec) + "\n")
+            text = text + str(rec) + "\n"
 
         # catch any errors.
         except sr.UnknownValueError:
@@ -107,12 +105,18 @@ def main():
         i += 1
 
     os.chdir('..')
+    shutil.rmtree('audio_chunks', ignore_errors=True)
 
+    return text
 
-
-
-    # transcribed_text = transcribe_audio(audio_file_path)
-    # print(transcribed_text)
+def main():
+    import sys
+    # # 呼叫語音辨識函式，並傳遞影片的音訊檔案路徑
+    if len(sys.argv) < 2:
+        print("No audio file specified.")
+        return
+    audio_file_path = sys.argv[1]
+    transcribe_audio_file(audio_file_path)
 
 if __name__ == "__main__":
     main()
